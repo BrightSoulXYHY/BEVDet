@@ -259,10 +259,8 @@ def _fill_trainval_infos(nusc,
             info['gt_boxes'] = gt_boxes
             info['gt_names'] = names
             info['gt_velocity'] = velocity.reshape(-1, 2)
-            info['num_lidar_pts'] = np.array(
-                [a['num_lidar_pts'] for a in annotations])
-            info['num_radar_pts'] = np.array(
-                [a['num_radar_pts'] for a in annotations])
+            info['num_lidar_pts'] = np.array( [a['num_lidar_pts'] for a in annotations])
+            info['num_radar_pts'] = np.array( [a['num_radar_pts'] for a in annotations])
             info['valid_flag'] = valid_flag
 
         if sample['scene_token'] in train_scenes:

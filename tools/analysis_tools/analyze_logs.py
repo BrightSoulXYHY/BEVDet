@@ -194,7 +194,7 @@ def main():
         assert json_log.endswith('.json')
 
     log_dicts = load_json_logs(json_logs)
-
+    # print(log_dicts[0].keys())
     eval(args.task)(log_dicts, args)
 
 

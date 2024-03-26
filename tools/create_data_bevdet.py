@@ -52,8 +52,7 @@ def get_gt(info):
         Tensor: GT labels.
     """
     ego2global_rotation = info['cams']['CAM_FRONT']['ego2global_rotation']
-    ego2global_translation = info['cams']['CAM_FRONT'][
-        'ego2global_translation']
+    ego2global_translation = info['cams']['CAM_FRONT']['ego2global_translation']
     trans = -np.array(ego2global_translation)
     rot = Quaternion(ego2global_rotation).inverse
     gt_boxes = list()
@@ -102,7 +101,7 @@ def nuscenes_data_prep(root_path, info_prefix, version, max_sweeps=10):
 
 
 def add_ann_adj_info(extra_tag):
-    nuscenes_version = 'v1.0-trainval'
+    nuscenes_version = 'v1.0-mini'
     dataroot = './data/nuscenes/'
     nuscenes = NuScenes(nuscenes_version, dataroot)
     for set in ['train', 'val']:
@@ -129,14 +128,14 @@ def add_ann_adj_info(extra_tag):
             scene = nuscenes.get('scene', sample['scene_token'])
             dataset['infos'][id]['occ_path'] = \
                 './data/nuscenes/gts/%s/%s'%(scene['name'], info['token'])
-        with open('./data/nuscenes/%s_infos_%s.pkl' % (extra_tag, set),
-                  'wb') as fid:
+        with open('./data/nuscenes/%s_infos_%s.pkl' % (extra_tag, set), 'wb') as fid:
             pickle.dump(dataset, fid)
 
 
 if __name__ == '__main__':
     dataset = 'nuscenes'
-    version = 'v1.0-trainval'
+    version = 'v1.0-mini'
+    # version = 'v1.0-trainval'
     # version = 'v1.0-test'
     root_path = './data/nuscenes'
     extra_tag = 'bevdetv3-nuscenes'
@@ -144,12 +143,15 @@ if __name__ == '__main__':
         root_path=root_path,
         info_prefix=extra_tag,
         version=version,
-        max_sweeps=10)
+        max_sweeps=10
+    )
 
     # print('add_ann_infos')
     add_ann_adj_info(extra_tag)
 
-    create_groundtruth_database('NuScenesDataset',
-                                root_path,
-                                extra_tag,
-                                f'{root_path}/{extra_tag}_infos_train.pkl')
+    create_groundtruth_database(
+        'NuScenesDataset',
+        root_path,
+        extra_tag,
+        f'{root_path}/{extra_tag}_infos_train.pkl'
+    )

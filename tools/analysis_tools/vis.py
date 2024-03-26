@@ -59,8 +59,7 @@ def get_lidar2global(infos):
     lidar2ego[:3, :3] = Quaternion(infos['lidar2ego_rotation']).rotation_matrix
     lidar2ego[:3, 3] = infos['lidar2ego_translation']
     ego2global = np.eye(4, dtype=np.float32)
-    ego2global[:3, :3] = Quaternion(
-        infos['ego2global_rotation']).rotation_matrix
+    ego2global[:3, :3] = Quaternion(infos['ego2global_rotation']).rotation_matrix
     ego2global[:3, 3] = infos['ego2global_translation']
     return ego2global @ lidar2ego
 

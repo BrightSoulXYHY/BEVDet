@@ -1,43 +1,26 @@
-# Copyright (c) Phigent Robotics. All rights reserved.
+_base_ = ['../_base_/datasets/airsim-3d.py', '../_base_/default_runtime.py']
 
-# mAP: 0.2828
-# mATE: 0.7734
-# mASE: 0.2884
-# mAOE: 0.6976
-# mAVE: 0.8637
-# mAAE: 0.2908
-# NDS: 0.3500
-#
-# Per-class results:
-# Object Class	AP	ATE	ASE	AOE	AVE	AAE
-# car	0.517	0.533	0.161	0.123	0.909	0.235
-# truck	0.226	0.745	0.232	0.222	0.848	0.268
-# bus	0.305	0.797	0.220	0.192	1.982	0.355
-# trailer	0.101	1.107	0.230	0.514	0.536	0.068
-# construction_vehicle	0.039	1.105	0.501	1.402	0.119	0.386
-# pedestrian	0.318	0.805	0.305	1.341	0.826	0.650
-# motorcycle	0.216	0.783	0.286	0.977	1.224	0.273
-# bicycle	0.203	0.712	0.304	1.354	0.465	0.090
-# traffic_cone	0.499	0.547	0.347	nan	nan	nan
-# barrier	0.404	0.599	0.297	0.153	nan	nan
+load_from = "weights/bevdet-r50.pth"
 
-_base_ = ['../_base_/datasets/nus-3d.py', '../_base_/default_runtime.py']
 # Global
 # If point cloud range is changed, the models should also change their point
 # cloud range accordingly
-point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
+point_cloud_range = [-51.2, -51.2, -30.0, 51.2, 51.2, 30.0]
+post_center_range = [-61.2, -61.2, -35.0, 61.2, 61.2, 35.0]
 # For nuScenes we usually do 10-class detection
-class_names = [
-    'car', 'truck', 'construction_vehicle', 'bus', 'trailer', 'barrier',
-    'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone'
-]
+class_names = [ "drone" ]
 
 data_config = {
     'cams': [
-        'CAM_FRONT_LEFT', 'CAM_FRONT', 'CAM_FRONT_RIGHT', 'CAM_BACK_LEFT',
-        'CAM_BACK', 'CAM_BACK_RIGHT'
+        "cam_front_lf",
+        "cam_front_center",
+        "cam_front_left",
+        "cam_front_right",
+        "cam_back_right",
+        "cam_back_center",
+        "cam_back_left",
     ],
-    'Ncams': 6,
+    'Ncams': 7,
     'input_size': (256, 704),
     'src_size': (900, 1600),
 
@@ -53,7 +36,7 @@ data_config = {
 grid_config = {
     'x': [-51.2, 51.2, 0.8],
     'y': [-51.2, 51.2, 0.8],
-    'z': [-5, 3, 8],
+    'z': [-30, 30, 60],
     'depth': [1.0, 60.0, 1.0],
 }
 
@@ -100,27 +83,20 @@ model = dict(
         type='CenterHead',
         in_channels=256,
         tasks=[
-            dict(num_class=10, class_names=['car', 'truck',
-                                            'construction_vehicle',
-                                            'bus', 'trailer',
-                                            'barrier',
-                                            'motorcycle', 'bicycle',
-                                            'pedestrian', 'traffic_cone']),
+            dict(num_class=1, class_names=['drone']),
         ],
-        common_heads=dict(
-            reg=(2, 2), height=(1, 2), dim=(3, 2), rot=(2, 2), vel=(2, 2)),
+        common_heads=dict(reg=(2, 2), height=(1, 2), dim=(3, 2), rot=(2, 2), vel=(2, 2)),
         share_conv_channel=64,
         bbox_coder=dict(
             type='CenterPointBBoxCoder',
             pc_range=point_cloud_range[:2],
-            post_center_range=[-61.2, -61.2, -10.0, 61.2, 61.2, 10.0],
+            post_center_range=post_center_range,
             max_num=500,
             score_threshold=0.1,
             out_size_factor=8,
             voxel_size=voxel_size[:2],
             code_size=9),
-        separate_head=dict(
-            type='SeparateHead', init_bias=-2.19, final_kernel=3),
+        separate_head=dict(type='SeparateHead', init_bias=-2.19, final_kernel=3),
         loss_cls=dict(type='GaussianFocalLoss', reduction='mean'),
         loss_bbox=dict(type='L1Loss', reduction='mean', loss_weight=0.25),
         norm_bbox=True),
@@ -139,7 +115,7 @@ model = dict(
     test_cfg=dict(
         pts=dict(
             pc_range=point_cloud_range[:2],
-            post_center_limit_range=[-61.2, -61.2, -10.0, 61.2, 61.2, 10.0],
+            post_center_limit_range=post_center_range,
             max_per_img=500,
             max_pool_nms=False,
             min_radius=[4, 12, 10, 1, 0.85, 0.175],
@@ -152,15 +128,16 @@ model = dict(
             # Scale-NMS
             nms_type=['rotate'],
             nms_thr=[0.2],
-            nms_rescale_factor=[[1.0, 0.7, 0.7, 0.4, 0.55,
-                                 1.1, 1.0, 1.0, 1.5, 3.5]]
+            nms_rescale_factor=[
+                [1.0, 0.7, 0.7, 0.4, 0.55, 1.1, 1.0, 1.0, 1.5, 3.5]
+            ]
         )
     )
 )
 
 # Data
-dataset_type = 'NuScenesDataset'
-data_root = 'data/nuscenes/'
+dataset_type = 'AirsimDataset'
+data_root = 'data/airsim/'
 file_client_args = dict(backend='disk')
 
 bda_aug_conf = dict(
@@ -194,12 +171,6 @@ test_pipeline = [
          classes=class_names,
          is_train=False),
     dict(
-        type='LoadPointsFromFile',
-        coord_type='LIDAR',
-        load_dim=5,
-        use_dim=5,
-        file_client_args=file_client_args),
-    dict(
         type='MultiScaleFlipAug3D',
         img_scale=(1333, 800),
         pts_scale_ratio=1,
@@ -209,7 +180,7 @@ test_pipeline = [
                 type='DefaultFormatBundle3D',
                 class_names=class_names,
                 with_label=False),
-            dict(type='Collect3D', keys=['points', 'img_inputs'])
+            dict(type='Collect3D', keys=['img_inputs'])
         ])
 ]
 
@@ -229,18 +200,18 @@ share_data_config = dict(
 
 test_data_config = dict(
     pipeline=test_pipeline,
-    ann_file=data_root + 'bevdetv3-nuscenes_infos_val.pkl')
+    ann_file=data_root + 'bs_airsim_infos_val.pkl')
 
 data = dict(
-    samples_per_gpu=1,
+    samples_per_gpu=2,
     workers_per_gpu=2,
     train=dict(
         data_root=data_root,
-        ann_file=data_root + 'bevdetv3-nuscenes_infos_train.pkl',
+        ann_file=data_root + 'bs_airsim_infos_train.pkl',
         pipeline=train_pipeline,
         classes=class_names,
         test_mode=False,
-        use_valid_flag=True,
+        use_valid_flag=False,
         # we use box_type_3d='LiDAR' in kitti and nuscenes dataset
         # and box_type_3d='Depth' in sunrgbd and scannet dataset.
         box_type_3d='LiDAR'),
